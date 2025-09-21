@@ -1,10 +1,10 @@
-# REPO: SoulSchoolAcademy/smartnet-pod-golden
-# PATH: /Dockerfile (repo root)
-FROM alpine:3.20
-WORKDIR /app
-RUN adduser -D app && chown -R app:app /app
-USER app
-# Copying repo isn't required for this smoke, but harmless and proves copy works
-COPY --chown=app:app . /app
-# Simple long-running container to prove publish works
-CMD ["sh","-c","echo 'smartnet-pod-golden online ✅'; tail -f /dev/null"]
+# ✅ Do NOT force a platform here (no "--platform=linux/amd64")
+FROM ubuntu:22.04
+
+# optional but helpful for cross-arch:
+ARG TARGETOS
+ARG TARGETARCH
+ENV TARGETOS=$TARGETOS TARGETARCH=$TARGETARCH
+
+# if you install arch-specific binaries, pick by $TARGETARCH when needed
+# RUN curl -L "https://example.com/tool-${TARGETARCH}" -o /usr/local/bin/tool && chmod +x /usr/local/bin/tool

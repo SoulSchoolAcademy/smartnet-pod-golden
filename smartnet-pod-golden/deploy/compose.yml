@@ -1,0 +1,30 @@
+services:
+  smartnet-pod:
+    image: ghcr.io/soulschoolacademy/smartnet-pod-golden:latest
+    container_name: smartnet-pod-golden
+    # If 11434 is busy (you’re running local ollama), change LEFT side to 11435
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: "0.0.0.0:11434"
+      OLLAMA_KEEP_ALIVE: "24h"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:11434/ || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 20
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    command: --label-enable --interval 3600
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    depends_on: [smartnet-pod]

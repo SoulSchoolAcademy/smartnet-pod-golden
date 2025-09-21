@@ -1,4 +1,11 @@
 .git
-.github
+.gitignore
 node_modules
+dist
+build
 *.log
+*.tmp
+tmp/
+.cache/
+Dockerfile.old
+deploy/*.env

@@ -2,9 +2,8 @@ services:
   smartnet-pod:
     image: ghcr.io/soulschoolacademy/smartnet-pod-golden:latest
     container_name: smartnet-pod-golden
-    # If 11434 is busy (you’re running local ollama), change LEFT side to 11435
     ports:
-      - "11434:11434"
+      - "11435:11434"      # host:container (avoid port conflict on 11434)
     restart: unless-stopped
     environment:
       OLLAMA_HOST: "0.0.0.0:11434"

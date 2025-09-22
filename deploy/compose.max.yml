@@ -1,0 +1,73 @@
+version: "3.9"
+networks: { internal: { driver: bridge } }
+volumes: { nats-data: {}, temporal-db-data: {}, app-db-data: {} }
+
+services:
+  nats:
+    image: nats:2.10
+    command: ["-js","-sd","/data","-m","8222"]
+    ports: ["4222:4222","8222:8222"]
+    volumes: ["nats-data:/data"]
+    networks: [internal]
+    labels: { com.centurylinklabs.watchtower.enable: "true" }
+
+  temporal-db:
+    image: postgres:16
+    environment: { POSTGRES_USER: temporal, POSTGRES_PASSWORD: temporalpwd, POSTGRES_DB: temporal }
+    volumes: ["temporal-db-data:/var/lib/postgresql/data"]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U temporal -d temporal"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    labels: { com.centurylinklabs.watchtower.enable: "true" }
+
+  temporal:
+    image: temporalio/auto-setup:1.24
+    depends_on: { temporal-db: { condition: service_healthy } }
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporalpwd
+      POSTGRES_SEEDS: temporal-db
+    ports: ["7233:7233"]
+    networks: [internal]
+    labels: { com.centurylinklabs.watchtower.enable: "true" }
+
+  app-db:
+    image: postgres:16
+    environment: { POSTGRES_PASSWORD: postgres }
+    ports: ["5432:5432"]
+    volumes: ["app-db-data:/var/lib/postgresql/data"]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    labels: { com.centurylinklabs.watchtower.enable: "true" }
+
+  orchestrator:
+    build: { context: ../orchestrator, dockerfile: Dockerfile }
+    container_name: orchestrator
+    environment:
+      PORT: "8765"
+      NATS_URL: "nats://nats:4222"
+      TEMPORAL_ADDRESS: "temporal:7233"
+      NODE_ENV: "development"
+    depends_on:
+      nats: { condition: service_started }
+      temporal: { condition: service_started }
+    ports: ["8765:8765"]
+    networks: [internal]
+    labels: { com.centurylinklabs.watchtower.enable: "true" }
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower
+    command: ["--label-enable","--interval","3600"]
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
+    networks: [internal]
+    restart: unless-stopped

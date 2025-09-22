@@ -7,5 +7,4 @@ build
 *.tmp
 tmp/
 .cache/
-Dockerfile.old
 deploy/*.env

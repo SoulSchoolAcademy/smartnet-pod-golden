@@ -1,7 +1,7 @@
 # repo: smartnet-pod-golden
 # path: deploy/compose.yml
 services:
-  # existing
+  # Your existing pod (map host 11435 → container 11434 to avoid port clash)
   smartnet-pod:
     image: ghcr.io/soulschoolacademy/smartnet-pod-golden:latest
     container_name: smartnet-pod-golden
@@ -9,32 +9,33 @@ services:
     restart: unless-stopped
     labels: [ "com.centurylinklabs.watchtower.enable=true" ]
 
-  # new local Postgres for SmartMail dev (use Supabase in prod)
+  # Local Postgres for SmartMail dev (prod → point DATABASE_URL to Supabase)
   db:
     image: postgres:15
     container_name: smartmail-db
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: smartnet
-    ports: [ "5433:5432" ]   # expose on 5433 to avoid conflicts
-    volumes:
-      - dbdata:/var/lib/postgresql/data
+    ports: [ "5433:5432" ]
+    volumes: [ "dbdata:/var/lib/postgresql/data" ]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d smartnet"]
       interval: 5s
       timeout: 3s
       retries: 20
 
+  # Build locally so you can run NOW (CI/GHCR comes later)
   smartmail-api:
-    image: ghcr.io/soulschoolacademy/smartmail-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.smartmail
+    image: ghcr.io/soulschoolacademy/smartmail-api:dev-local
     container_name: smartmail-api
     depends_on:
       db:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/smartnet
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM: ${RESEND_FROM:-noreply@mail.smartnet.app}
     ports: [ "8088:8088" ]
     restart: unless-stopped
     labels: [ "com.centurylinklabs.watchtower.enable=true" ]
@@ -43,10 +44,13 @@ services:
     image: containrrr/watchtower
     container_name: watchtower
     command: --label-enable --interval 3600
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+    volumes: [ "/var/run/docker.sock:/var/run/docker.sock" ]
     restart: unless-stopped
     depends_on: [ smartnet-pod, smartmail-api ]
+
+volumes:
+  dbdata:
+
 
 volumes:
   dbdata:

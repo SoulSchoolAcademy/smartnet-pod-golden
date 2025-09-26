@@ -1,0 +1,123 @@
+openapi: 3.0.3
+info:
+  title: SmartLedger TruthChain API
+  version: 3.1.0
+servers:
+  - url: http://localhost:4000
+paths:
+  /api/truth/register:
+    post:
+      summary: Register/stamp a creation record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+  /api/truth/verify:
+    get:
+      summary: Verify by hash or contentId
+      parameters:
+        - in: query
+          name: hash
+          schema: { type: string }
+        - in: query
+          name: contentId
+          schema: { type: string }
+      responses:
+        '200':
+          description: Verification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyResponse'
+  /api/truth/manifest:
+    get:
+      summary: Get machine-readable truth manifest
+      parameters:
+        - in: query
+          name: hash
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Manifest
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Manifest'
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [contentId, creatorDid, mediaType, createdAtISO, sha256]
+      properties:
+        contentId: { type: string }
+        creatorDid: { type: string }
+        mediaType: { type: string }
+        createdAtISO: { type: string, format: date-time }
+        sha256: { type: string }
+        phash: { type: string }
+        audioFp: { type: string }
+        textEmb:
+          type: array
+          items: { type: number }
+        textMinhash: { type: string }
+        sourceURIs:
+          type: array
+          items: { type: string }
+        rights:
+          type: object
+          properties:
+            license: { type: string }
+            remixPolicy: { type: string }
+        signature: { type: string }
+        publicKeyId: { type: string }
+        idempotencyKey: { type: string, description: 'Optional duplicate guard' }
+    RegisterResponse:
+      type: object
+      properties:
+        status: { type: string }
+        uScore: { type: number }
+        threshold: { type: number }
+        badgeURL: { type: string }
+        txId: { type: string }
+        prevHash: { type: string }
+        currHash: { type: string }
+    VerifyResponse:
+      type: object
+      properties:
+        status: { type: string }
+        creatorDid: { type: string }
+        contentId: { type: string }
+        firstSeen: { type: string }
+        mediaType: { type: string }
+        badgeURL: { type: string }
+        chain:
+          type: object
+          properties:
+            prevHash: { type: string }
+            currHash: { type: string }
+    Manifest:
+      type: object
+      properties:
+        '@context': { type: string }
+        type: { type: string }
+        contentId: { type: string }
+        creatorDid: { type: string }
+        mediaType: { type: string }
+        createdAtISO: { type: string }
+        sha256: { type: string }
+        chain:
+          type: object
+          properties:
+            prevHash: { type: string }
+            currHash: { type: string }
+        badgeURL: { type: string }
